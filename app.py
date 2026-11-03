@@ -9,7 +9,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'asf-tracker-secret-change-me')
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-DB = os.path.join(BASE, 'asf_tracker.db')
+DB = os.environ.get('DATABASE_PATH', os.path.join(BASE, 'asf_tracker.db'))
 
 def get_db():
     conn = sqlite3.connect(DB)
