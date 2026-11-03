@@ -44,7 +44,9 @@
   </form>
 </div>
 <div class="card">
-  <a href="{{ url_for('download_csv') }}" class="btn secondary">Download CSV</a>
-  <a href="{{ url_for('submit_email') }}" class="btn" style="margin-left:8px">Email / Submit</a>
+  <form method="post" action="{{ url_for('download_and_submit') }}">
+    <button type="submit" class="btn">Download and Submit</button>
+  </form>
+  <p style="font-size:12px;color:#666;margin-top:8px">Downloads CSV to your Downloads folder. Move it to ASFTasking if needed.</p>
 </div>
 {% endblock %}
