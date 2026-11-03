@@ -9,7 +9,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'asf-tracker-secret-change-me')
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-DB = os.environ.get('DATABASE_PATH', os.path.join(BASE, 'asf_tracker.db'))
+DB = os.path.join(BASE, 'asf_tracker.db')
 
 def get_db():
     conn = sqlite3.connect(DB)
@@ -209,6 +209,34 @@ def submit_confirm():
         conn.close()
     flash('Tasks marked submitted')
     return redirect(url_for('dashboard'))
+
+
+@app.route('/download-and-submit', methods=['POST'])
+@login_required
+def download_and_submit():
+    today = datetime.now().strftime('%Y-%m-%d')
+    conn = get_db()
+    tasks = conn.execute('SELECT * FROM tasks WHERE username=? AND date=? AND submitted=0',
+                         (session['user'], today)).fetchall()
+    if not tasks:
+        conn.close()
+        flash('No tasks to submit')
+        return redirect(url_for('dashboard'))
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(['Date','Username','Equipment','Hours','Resolved','WorkOrder','WONumber','Notes'])
+    for t in tasks:
+        w.writerow([t['date'], t['username'], t['equipment'], f"{t['hours']:.2f}",
+                    'Yes' if t['resolved'] else 'No', 'Yes' if t['has_wo'] else 'No',
+                    t['wo_number'] or '', t['notes'] or ''])
+    ids = [t['id'] for t in tasks]
+    conn.execute(f'UPDATE tasks SET submitted=1 WHERE id IN ({",".join("?"*len(ids))})', ids)
+    conn.commit()
+    conn.close()
+    buf.seek(0)
+    filename = f"ASFTasking_{session['user']}_{today}.csv"
+    return send_file(io.BytesIO(buf.getvalue().encode()), mimetype='text/csv',
+                     as_attachment=True, download_name=filename)
 
 @app.route('/download/csv')
 @login_required
